@@ -3,17 +3,17 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 serve(async (req) => {
     try {
-        const { sentence } = await req.json();
-
+        const { sentence, levels } = await req.json();
+        const levelsList = Array.isArray(levels) && levels.length > 0 ? levels : ['A1','A2','B1','B2','C1','C2'];
+        const levelsStr = levelsList.join(', ');
         const prompt = `
-You will receive a sentence from a user. Return a JSON object with:
+You will receive a sentence from a user. Return ONLY a valid JSON object (no markdown, no code block, no explanation, no extra text) with:
 - the original input
 - an analysis field with the overall CEFR level of the input sentence (A1, A2, B1, B2, C1, or C2) and a short justification
-- rewritten versions for each CEFR level (A1 to C2)
+- rewritten versions for each of these CEFR levels: ${levelsStr}
 - a short explanation of why each matches its CEFR level
 
 Format:
-
 {
   "input": "<original>",
   "analysis": {
@@ -27,6 +27,7 @@ Format:
   ]
 }
 
+Only include these levels: ${levelsStr}
 Sentence: ${sentence}
 `;
 

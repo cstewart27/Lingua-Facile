@@ -1,14 +1,35 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, ActivityIndicator, ScrollView, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchCEFRLevels, CEFRResponse } from '../../services/cefrService';
+import {getVerbData} from "@/services/getVerbData";
+import { useCEFRSettings } from '../store/useCEFRSettings';
+import SettingsScreen from '../../components/ui/Settings';
+import { Ionicons } from '@expo/vector-icons';
+
+const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 export default function CEFRChecker() {
+  const { selectedLevels, dynamicNextLevel, setSelectedLevels, hydrate } = useCEFRSettings();
   const [input, setInput] = useState('');
   const [result, setResult] = useState<CEFRResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CEFRResponse['analysis'] | null>(null);
+  const [analyzedInput, setAnalyzedInput] = useState('');
+  const [settingsVisible, setSettingsVisible] = useState(false);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const getNextLevel = (level: string) => {
+    const idx = CEFR_LEVELS.indexOf(level);
+    if (idx >= 0 && idx < CEFR_LEVELS.length - 1) {
+      return [CEFR_LEVELS[idx + 1]];
+    }
+    return [];
+  };
 
   const handleCheck = async () => {
     setLoading(true);
@@ -16,21 +37,40 @@ export default function CEFRChecker() {
     setResult(null);
     setAnalysis(null);
     try {
-      const res = await fetchCEFRLevels(input);
-      console.log('CEFR API response:', res);
+      const res = await fetchCEFRLevels(input, selectedLevels);
       setResult(res);
       setAnalysis(res.analysis);
+      setAnalyzedInput(input); // Save the input that was analyzed
     } catch (e: any) {
       setError(e.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
+
+    console.log(await getVerbData(input));
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={{ position: 'relative', marginBottom: 8, marginTop: 8, minHeight: 40, justifyContent: 'center' }}>
+        <Text style={[styles.title, { alignSelf: 'center' }]}>CEFR Level Checker</Text>
+        <TouchableOpacity
+          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', height: 40, paddingHorizontal: 8 }}
+          onPress={() => setSettingsVisible(true)}
+          accessibilityLabel="Open settings"
+        >
+          <Ionicons name="settings-outline" size={28} color="#333" />
+        </TouchableOpacity>
+      </View>
+      <Modal
+        visible={settingsVisible}
+        animationType="slide"
+        onRequestClose={() => setSettingsVisible(false)}
+        presentationStyle="formSheet"
+      >
+        <SettingsScreen onClose={() => setSettingsVisible(false)} />
+      </Modal>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>CEFR Level Checker</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter a sentence..."
@@ -47,12 +87,23 @@ export default function CEFRChecker() {
             <Text style={styles.analysisJustificationLabel}>Justification:</Text>
             <Text style={styles.analysisJustification}>{analysis.justification}</Text>
             <Text style={styles.analysisInputLabel}>Input Analyzed:</Text>
-            <Text style={styles.analysisInput}>{input}</Text>
+            <Text style={styles.analysisInput}>{analyzedInput}</Text>
           </View>
         )}
+
+        <Text style={styles.selectedLevels}>
+          {dynamicNextLevel
+            ? 'Using dynamic check: will display next highest level only.'
+            : `Levels: ${selectedLevels.join(', ')}`}
+        </Text>
+
         {result && (
           <View style={styles.resultContainer}>
-            {result.results.map((r, idx) => (
+            {(
+              (dynamicNextLevel && analysis?.level)
+                ? result.results.filter(r => r.level === getNextLevel(analysis.level)[0])
+                : result.results.filter(r => selectedLevels.includes(r.level))
+            ).map((r, idx) => (
               <View key={idx} style={styles.levelContainer}>
                 <Text style={styles.level}>Level: {r.level}</Text>
                 <Text style={styles.sentence}>Sentence: {r.sentence}</Text>
@@ -61,6 +112,7 @@ export default function CEFRChecker() {
             ))}
           </View>
         )}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -76,11 +128,23 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: '#fff',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  headerIconButton: {
+    marginLeft: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
     textAlign: 'center',
+    flexShrink: 0,
   },
   input: {
     borderWidth: 1,
@@ -166,5 +230,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
     color: '#555',
+  },
+  selectedLevels: {
+    marginTop: 16,
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333',
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 40,
+    right: 16,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    elevation: 0,
+  },
+  settingsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
