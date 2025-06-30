@@ -1,7 +1,7 @@
 import { detectLanguageFromEdge } from './detectLanguage';
 import { analyzeVerbsFromEdge } from './analyzeVerbs';
 import { getFromLocal, getFromSupabase, saveToLocal, saveToSupabase } from './verbCache';
-import {conjugateVerbFromEdge} from "@/services/conjugateVerbService";
+import { conjugateVerbFromEdge, upsertVerbConjugation } from "@/services/conjugateVerbService";
 
 export const getVerbData = async (sentence: string) => {
     const language = await detectLanguageFromEdge(sentence);
@@ -15,6 +15,11 @@ export const getVerbData = async (sentence: string) => {
     for (const verb of gptVerbs) {
         const inf = verb.infinitive.toLowerCase();
         let cached = await getFromLocal(inf, language);
+        if (cached) {
+            console.log(`Found cached verb data for ${inf} in ${language}`);
+            results.push(cached);
+            continue; // Skip to the next verb if we have a local cache
+        }
 
 
         if (!cached) {
@@ -24,11 +29,16 @@ export const getVerbData = async (sentence: string) => {
 
         if (!cached) {
             await saveToLocal(inf, language, verb);
+            // Always upsert into verb_analysis before upserting conjugation
             await saveToSupabase(inf, language, verb);
+
+            const conjugationData = await conjugateVerbFromEdge(inf, language);
+            console.log(JSON.stringify(conjugationData, null, 2));
+            await upsertVerbConjugation(inf, language, conjugationData.conjugation);
+
             cached = verb;
         }
 
-        console.log(JSON.stringify(await conjugateVerbFromEdge(inf, language), null, 2));
 
         results.push(cached);
     }

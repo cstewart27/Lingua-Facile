@@ -44,3 +44,27 @@ export const conjugateVerbFromEdge = async (
 
   return data;
 };
+
+export const upsertVerbConjugation = async (
+  infinitive: string,
+  language: string,
+  conjugation: any,
+  source: string = 'manual'
+) => {
+  const { data, error } = await supabase
+    .from('verb_conjugations')
+    .upsert([
+      {
+        infinitive,
+        language,
+        conjugation,
+        source,
+      }
+    ], { onConflict: ['infinitive', 'language'] });
+
+  if (error) {
+    console.error('Upsert verb_conjugations error:', error);
+    throw error;
+  }
+  return data;
+};
