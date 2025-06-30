@@ -18,6 +18,8 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'globe': 'public', // maps to a globe icon in Material Icons
+  'text.book.closed.fill': 'menu-book', // maps to a closed book icon in Material Icons
 } as IconMapping;
 
 /**

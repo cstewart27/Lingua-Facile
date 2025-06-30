@@ -24,7 +24,12 @@ export const getVerbData = async (sentence: string) => {
 
         if (!cached) {
             cached = await getFromSupabase(inf, language);
-            if (cached) await saveToLocal(inf, language, cached);
+            if (cached) {
+                await saveToLocal(inf, language, cached);
+                console.log(`Found cached verb analysis for ${inf} in ${language} from Supabase`);
+                results.push(cached);
+                continue; // Skip to the next verb if we have a Supabase cache
+            }
         }
 
         if (!cached) {
