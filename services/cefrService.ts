@@ -1,10 +1,9 @@
-import { supabase } from '../utils/supabase';
 
-const supabaseFunctionUrl = process.env.EXPO_PUBLIC_SUPABASE_OPENAI_URL;
+const supabaseFunctionUrl = process.env.EXPO_PUBLIC_SUPABASE_CALL_OPENAI_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const fetchCEFRLevels = async (sentence: string) => {
-    if (!supabaseFunctionUrl) throw new Error('Supabase function URL not set in env');
+    if (!supabaseFunctionUrl) throw new Error('Supabase CALL-OPENAI function URL not set in env');
     if (!supabaseAnonKey) throw new Error('Supabase anon key not set in env');
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
