@@ -14,6 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { translateWithDeepL, DeepLTranslationError } from '@/services/deeplService';
+import * as Clipboard from 'expo-clipboard';
+import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TranslatorScreen() {
   const colorScheme = useColorScheme();
@@ -25,6 +28,8 @@ export default function TranslatorScreen() {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedInput, setCopiedInput] = useState(false);
+  const [copiedOutput, setCopiedOutput] = useState(false);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -90,6 +95,18 @@ export default function TranslatorScreen() {
   const selectTargetLanguage = (langCode: string) => {
     setTargetLang(langCode);
     setShowTargetDropdown(false);
+  };
+
+  const handleCopyInput = async () => {
+    await Clipboard.setStringAsync(inputText);
+    setCopiedInput(true);
+    setTimeout(() => setCopiedInput(false), 1200);
+  };
+
+  const handleCopyOutput = async () => {
+    await Clipboard.setStringAsync(translatedText);
+    setCopiedOutput(true);
+    setTimeout(() => setCopiedOutput(false), 1200);
   };
 
   const styles = StyleSheet.create({
@@ -188,29 +205,33 @@ export default function TranslatorScreen() {
       top: '100%',
       left: 0,
       right: 0,
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-      borderRadius: 8,
+      backgroundColor: Colors[colorScheme ?? 'light'].background, // Use background, not card, for solid color
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-      maxHeight: 200,
+      borderColor: Colors[colorScheme ?? 'light'].tint,
+      maxHeight: 220,
       zIndex: 1000,
-      elevation: 5,
+      elevation: 8,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      paddingVertical: 4,
     },
     dropdownItem: {
-      padding: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 18,
       borderBottomWidth: 1,
       borderBottomColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+      backgroundColor: Colors[colorScheme ?? 'light'].background, // Ensure each item is solid
     },
     dropdownItemLast: {
       borderBottomWidth: 0,
     },
     dropdownItemText: {
       color: Colors[colorScheme ?? 'light'].text,
-      fontSize: 16,
+      fontSize: 17,
+      letterSpacing: 0.2,
     },
     languagePickerTouchable: {
       flex: 1,
@@ -308,7 +329,7 @@ export default function TranslatorScreen() {
           </View>
         </View>
 
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { position: 'relative' }]}>
           <TextInput
             style={styles.textInput}
             placeholder="Enter text to translate..."
@@ -321,10 +342,26 @@ export default function TranslatorScreen() {
             }}
             multiline
           />
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+            onPress={handleCopyInput}
+            disabled={!inputText}
+          >
+            <Ionicons name={copiedInput ? 'checkmark' : 'copy-outline'} size={22} color={copiedInput ? Colors[colorScheme ?? 'light'].tint : Colors[colorScheme ?? 'light'].tabIconDefault} />
+          </TouchableOpacity>
+          {copiedInput && (
+            <Animated.View
+              entering={FadeIn}
+              exiting={FadeOut}
+              style={{ position: 'absolute', top: 40, right: 12, backgroundColor: '#222', padding: 6, borderRadius: 6 }}
+            >
+              <Text style={{ color: '#fff', fontSize: 12 }}>Copied!</Text>
+            </Animated.View>
+          )}
         </View>
 
         <TouchableOpacity 
-          style={styles.translateButton} 
+          style={[styles.translateButton, { marginBottom: 24 }]}
           onPress={() => {
             Keyboard.dismiss();
             setShowSourceDropdown(false);
@@ -338,21 +375,43 @@ export default function TranslatorScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.resultContainer}>
+        <Animated.View
+          style={styles.resultContainer}
+          layout={Layout}
+          entering={FadeIn}
+          exiting={FadeOut}
+        >
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].tint} />
             </View>
           ) : error ? (
-            <Text style={[styles.resultText, styles.errorText]}>
-              {error}
-            </Text>
+            <Text style={[styles.resultText, styles.errorText]}>{error}</Text>
           ) : (
-            <Text style={styles.resultText}>
-              {translatedText || 'Translation will appear here...'}
-            </Text>
+            <>
+              <Text style={styles.resultText}>
+                {translatedText || 'Translation will appear here...'}
+              </Text>
+              {translatedText ? (
+                <TouchableOpacity
+                  style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+                  onPress={handleCopyOutput}
+                >
+                  <Ionicons name={copiedOutput ? 'checkmark' : 'copy-outline'} size={22} color={copiedOutput ? Colors[colorScheme ?? 'light'].tint : Colors[colorScheme ?? 'light'].tabIconDefault} />
+                </TouchableOpacity>
+              ) : null}
+              {copiedOutput && (
+                <Animated.View
+                  entering={FadeIn}
+                  exiting={FadeOut}
+                  style={{ position: 'absolute', top: 40, right: 12, backgroundColor: '#222', padding: 6, borderRadius: 6 }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 12 }}>Copied!</Text>
+                </Animated.View>
+              )}
+            </>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.50.2",
     "expo": "~53.0.12",
     "expo-blur": "~14.1.5",
+    "expo-clipboard": "~7.1.5",
     "expo-constants": "~17.1.6",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
@@ -31,6 +32,7 @@
     "expo-system-ui": "~5.0.9",
     "expo-web-browser": "~14.2.0",
     "franc": "^6.2.0",
+    "moti": "^0.30.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.4",
@@ -41,6 +43,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
+    "tslib": "^2.8.1",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

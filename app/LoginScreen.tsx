@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator, Image, Platform } from 'react-native';
 import { supabase } from '../utils/supabase';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('');
@@ -50,62 +51,93 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>{mode === 'signIn' ? 'Sign In' : 'Sign Up'}</Text>
-      <TextInput
-        style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.icon }]}
-        placeholder="Email"
-        placeholderTextColor={theme.icon}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.icon }]}
-        placeholder="Password"
-        placeholderTextColor={theme.icon}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {loading ? <ActivityIndicator color={theme.tint} /> : (
-        <>
-          <Button title={mode === 'signIn' ? 'Sign In' : 'Sign Up'} onPress={handleAuth} color={theme.tint} />
+    <View style={[styles.outer, { backgroundColor: theme.background }]}>
+      <Animated.View entering={FadeIn.duration(600)} exiting={FadeOut.duration(400)} style={[styles.card, { backgroundColor: theme.card, shadowColor: theme.text }]}>
+        <Image source={require('../assets/images/icon.png')} style={styles.logo} />
+        <Text style={[styles.title, { color: theme.text }]}>{mode === 'signIn' ? 'Sign In' : 'Sign Up'}</Text>
+        <Animated.View layout={Layout} style={{ width: '100%' }}>
+          <TextInput
+            style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.icon }]}
+            placeholder="Email"
+            placeholderTextColor={theme.icon}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.icon }]}
+            placeholder="Password"
+            placeholderTextColor={theme.icon}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+        </Animated.View>
+        {loading ? <ActivityIndicator color={theme.tint} /> : (
+          <Animated.View layout={Layout} style={{ width: '100%' }}>
+            <Button title={mode === 'signIn' ? 'Sign In' : 'Sign Up'} onPress={handleAuth} color={theme.tint} />
+            <View style={{ height: 12 }} />
+            <Button
+              title="Continue as Guest"
+              onPress={handleGuest}
+              color={theme.icon}
+            />
+          </Animated.View>
+        )}
+        <View style={{ height: 16 }} />
+        <Animated.View layout={Layout}>
           <Button
-            title="Continue as Guest"
-            onPress={handleGuest}
+            title={mode === 'signIn' ? 'No account? Sign Up' : 'Have an account? Sign In'}
+            onPress={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
             color={theme.icon}
           />
-        </>
-      )}
-      <Button
-        title={mode === 'signIn' ? 'No account? Sign Up' : 'Have an account? Sign In'}
-        onPress={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
-        color={theme.icon}
-      />
+        </Animated.View>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
     backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 24,
+  card: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    // Only apply elevation on iOS (no shadow on Android)
+    elevation: Platform.OS === 'ios' ? 8 : 0,
+  },
+  logo: {
+    width: 64,
+    height: 64,
     marginBottom: 24,
+    borderRadius: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 24,
+    letterSpacing: 1.2,
   },
   input: {
     width: '100%',
-    padding: 12,
-    borderWidth: 1,
+    padding: 14,
+    borderWidth: 1.5,
     borderColor: '#ccc',
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 18,
+    backgroundColor: '#f7f7f7',
+    fontSize: 16,
   },
 });
