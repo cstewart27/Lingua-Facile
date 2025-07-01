@@ -6,6 +6,8 @@ import {getVerbData} from "@/services/getVerbData";
 import { useCEFRSettings } from '../store/useCEFRSettings';
 import SettingsScreen from '../../components/ui/Settings';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -18,6 +20,9 @@ export default function CEFRChecker() {
   const [analysis, setAnalysis] = useState<CEFRResponse['analysis'] | null>(null);
   const [analyzedInput, setAnalyzedInput] = useState('');
   const [settingsVisible, setSettingsVisible] = useState(false);
+
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
   useEffect(() => {
     hydrate();
@@ -51,15 +56,15 @@ export default function CEFRChecker() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <View style={{ position: 'relative', marginBottom: 8, marginTop: 8, minHeight: 40, justifyContent: 'center' }}>
-        <Text style={[styles.title, { alignSelf: 'center' }]}>CEFR Level Checker</Text>
+        <Text style={[styles.title, { alignSelf: 'center', color: theme.text }]}>CEFR Level Checker</Text>
         <TouchableOpacity
           style={{ position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', height: 40, paddingHorizontal: 8 }}
           onPress={() => setSettingsVisible(true)}
           accessibilityLabel="Open settings"
         >
-          <Ionicons name="settings-outline" size={28} color="#333" />
+          <Ionicons name="settings-outline" size={28} color={theme.icon} />
         </TouchableOpacity>
       </View>
       <Modal
@@ -70,28 +75,29 @@ export default function CEFRChecker() {
       >
         <SettingsScreen onClose={() => setSettingsVisible(false)} />
       </Modal>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
+        keyboardShouldPersistTaps="handled">
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.icon }]}
           placeholder="Enter a sentence..."
+          placeholderTextColor={theme.icon}
           value={input}
           onChangeText={setInput}
           multiline
         />
-        <Button title="Check CEFR Levels" onPress={handleCheck} disabled={loading || !input.trim()} />
-        {loading && <ActivityIndicator style={{ marginTop: 16 }} />}
-        {error && <Text style={styles.error}>{error}</Text>}
+        <Button title="Check CEFR Levels" onPress={handleCheck} disabled={loading || !input.trim()} color={theme.tint} />
+        {loading && <ActivityIndicator style={{ marginTop: 16 }} color={theme.tint} />}
+        {error && <Text style={[styles.error, { color: '#e74c3c' }]}>{error}</Text>}
         {analysis && (
           <View style={styles.analysisContainer}>
-            <Text style={styles.analysisTitle}>Overall CEFR Level: <Text style={styles.analysisLevel}>{analysis.level}</Text></Text>
-            <Text style={styles.analysisJustificationLabel}>Justification:</Text>
-            <Text style={styles.analysisJustification}>{analysis.justification}</Text>
-            <Text style={styles.analysisInputLabel}>Input Analyzed:</Text>
-            <Text style={styles.analysisInput}>{analyzedInput}</Text>
+            <Text style={[styles.analysisTitle, { color: theme.text }]}>Overall CEFR Level: <Text style={styles.analysisLevel}>{analysis.level}</Text></Text>
+            <Text style={[styles.analysisJustificationLabel, { color: theme.icon }]}>Justification:</Text>
+            <Text style={[styles.analysisJustification, { color: theme.text }]}>{analysis.justification}</Text>
+            <Text style={[styles.analysisInputLabel, { color: theme.icon }]}>Input Analyzed:</Text>
+            <Text style={[styles.analysisInput, { color: theme.text }]}>{analyzedInput}</Text>
           </View>
         )}
-
-        <Text style={styles.selectedLevels}>
+        <Text style={[styles.selectedLevels, { color: theme.icon }]}>
           {dynamicNextLevel
             ? 'Using dynamic check: will display next highest level only.'
             : `Levels: ${selectedLevels.join(', ')}`}

@@ -36,6 +36,7 @@ export const getVerbData = async (sentence: string) => {
             await saveToLocal(inf, language, verb);
             // Always upsert into verb_analysis before upserting conjugation
             await saveToSupabase(inf, language, verb);
+            console.log(`Saved verb analysis for ${inf} in ${language} to local storage and Supabase`);
 
             const conjugationData = await conjugateVerbFromEdge(inf, language);
             console.log(JSON.stringify(conjugationData, null, 2));
