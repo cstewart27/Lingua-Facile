@@ -3,27 +3,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const STORAGE_KEY = 'cefr_levels_selected';
-const DYNAMIC_NEXT_LEVEL_KEY = 'cefr_dynamic_next_level';
+const DYNAMIC_CHECK_KEY = 'cefr_dynamic_check';
 
 interface CEFRSettingsState {
   selectedLevels: string[];
-  dynamicNextLevel: boolean;
+  dynamicCheck: boolean;
   setSelectedLevels: (levels: string[]) => void;
-  setDynamicNextLevel: (val: boolean) => void;
+  setDynamicCheck: (val: boolean) => void;
   hydrate: () => Promise<void>;
 }
 
 export const useCEFRSettings = create<CEFRSettingsState>((set) => ({
   selectedLevels: CEFR_LEVELS,
-  dynamicNextLevel: false,
+  dynamicCheck: false,
   setSelectedLevels: (levels) => {
     const sorted = [...levels].sort((a, b) => CEFR_LEVELS.indexOf(a) - CEFR_LEVELS.indexOf(b));
     set({ selectedLevels: sorted });
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
   },
-  setDynamicNextLevel: (val) => {
-    set({ dynamicNextLevel: val });
-    AsyncStorage.setItem(DYNAMIC_NEXT_LEVEL_KEY, String(val));
+  setDynamicCheck: (val) => {
+    set({ dynamicCheck: val });
+    AsyncStorage.setItem(DYNAMIC_CHECK_KEY, String(val));
     if (val) {
       set({ selectedLevels: [] });
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
@@ -31,12 +31,12 @@ export const useCEFRSettings = create<CEFRSettingsState>((set) => ({
   },
   hydrate: async () => {
     const levels = await AsyncStorage.getItem(STORAGE_KEY);
-    const dynamic = await AsyncStorage.getItem(DYNAMIC_NEXT_LEVEL_KEY);
+    const dynamic = await AsyncStorage.getItem(DYNAMIC_CHECK_KEY);
     const parsedLevels = levels ? JSON.parse(levels) : CEFR_LEVELS;
     const sorted = [...parsedLevels].sort((a, b) => CEFR_LEVELS.indexOf(a) - CEFR_LEVELS.indexOf(b));
     set({
       selectedLevels: sorted,
-      dynamicNextLevel: dynamic === 'true',
+      dynamicCheck: dynamic === 'true',
     });
   },
 }));

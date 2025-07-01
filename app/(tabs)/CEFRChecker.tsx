@@ -12,7 +12,7 @@ import { Colors } from '@/constants/Colors';
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 export default function CEFRChecker() {
-  const { selectedLevels, dynamicNextLevel, setSelectedLevels, hydrate } = useCEFRSettings();
+  const { selectedLevels, dynamicCheck, setSelectedLevels, hydrate } = useCEFRSettings();
   const [input, setInput] = useState('');
   const [result, setResult] = useState<CEFRResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function CEFRChecker() {
     setResult(null);
     setAnalysis(null);
     try {
-      const res = await fetchCEFRLevels(input, selectedLevels);
+      const res = await fetchCEFRLevels(input, selectedLevels, dynamicCheck);
       setResult(res);
       setAnalysis(res.analysis);
       setAnalyzedInput(input); // Save the input that was analyzed
@@ -98,7 +98,7 @@ export default function CEFRChecker() {
           </View>
         )}
         <Text style={[styles.selectedLevels, { color: theme.icon }]}>
-          {dynamicNextLevel
+          {dynamicCheck
             ? 'Using dynamic check: will display next highest level only.'
             : `Levels: ${selectedLevels.join(', ')}`}
         </Text>
@@ -106,7 +106,7 @@ export default function CEFRChecker() {
         {result && (
           <View style={styles.resultContainer}>
             {(
-              (dynamicNextLevel && analysis?.level)
+              (dynamicCheck && analysis?.level)
                 ? result.results.filter(r => r.level === getNextLevel(analysis.level)[0])
                 : result.results.filter(r => selectedLevels.includes(r.level))
             ).map((r, idx) => (

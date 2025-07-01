@@ -10,7 +10,7 @@ import { Colors } from '@/constants/Colors';
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 function SettingsScreen({ onClose }: { onClose?: () => void }) {
-  const { selectedLevels, dynamicNextLevel, setSelectedLevels, setDynamicNextLevel, hydrate } = useCEFRSettings();
+  const { selectedLevels, dynamicCheck, setSelectedLevels, setDynamicCheck, hydrate } = useCEFRSettings();
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
@@ -39,8 +39,8 @@ function SettingsScreen({ onClose }: { onClose?: () => void }) {
     }
   };
 
-  const toggleDynamicNextLevel = () => {
-    setDynamicNextLevel(!dynamicNextLevel);
+  const toggleDynamicCheck = () => {
+    setDynamicCheck(!dynamicCheck);
   };
 
   if (loading) return <Text>Loading...</Text>;
@@ -77,7 +77,7 @@ function SettingsScreen({ onClose }: { onClose?: () => void }) {
         ))}
         <View style={styles.row}>
           <Text style={[styles.label, { color: theme.text }]}>Show only next CEFR level after analysis</Text>
-          <Switch value={dynamicNextLevel} onValueChange={toggleDynamicNextLevel} />
+          <Switch value={dynamicCheck} onValueChange={toggleDynamicCheck} />
         </View>
         <View style={{ flex: 1 }} />
         <TouchableOpacity
