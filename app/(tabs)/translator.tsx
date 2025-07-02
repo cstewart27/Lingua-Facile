@@ -401,7 +401,7 @@ export default function TranslatorScreen() {
             <View>
               {/* Tab Content Visual Only */}
               <View
-                style={{ backgroundColor: 'white', borderRadius: 16, marginHorizontal: 12, marginBottom: 16, padding: 16 }}
+                style={{ backgroundColor: 'white', borderRadius: 16, marginHorizontal: 12, marginBottom: 50, padding: 16 }}
                 onStartShouldSetResponder={() => true}
               >
                 {activeTab === 'examples' && (
