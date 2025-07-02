@@ -161,6 +161,7 @@ export default function TranslatorScreen() {
   // Handler to clear all translation fields
   const handleNewTranslation = () => {
     setInputText('');
+    setDraftInputText('');
     setTranslatedText(''); // Ensure output is cleared
     setError(null);
     setCopiedInput(false);
