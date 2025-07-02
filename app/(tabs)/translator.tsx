@@ -1,37 +1,41 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
-  ActivityIndicator,
   Keyboard,
   Alert,
+  TouchableWithoutFeedback,
+  Modal,
+  FlatList,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
 import { translateWithDeepL, DeepLTranslationError } from '@/services/deeplService';
 import * as Clipboard from 'expo-clipboard';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {  MotiView } from 'moti';
 
 export default function TranslatorScreen() {
-  const colorScheme = useColorScheme();
   const [inputText, setInputText] = useState('');
+  const [draftInputText, setDraftInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sourceLang, setSourceLang] = useState<string | null>(null);
   const [targetLang, setTargetLang] = useState<string | null>(null);
-  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
-  const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedInput, setCopiedInput] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [hasClipboardContent, setHasClipboardContent] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [activeTab, setActiveTab] = useState<'examples' | 'synonyms' | 'tone'>('examples');
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [languageModalType, setLanguageModalType] = useState<'source' | 'target' | null>(null);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -49,10 +53,8 @@ export default function TranslatorScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const savedInput = await AsyncStorage.getItem('translator_inputText');
         const savedSource = await AsyncStorage.getItem('translator_sourceLang');
         const savedTarget = await AsyncStorage.getItem('translator_targetLang');
-        if (savedInput !== null) setInputText(savedInput);
         setSourceLang(savedSource || 'en'); // default input: English
         setTargetLang(savedTarget || 'it'); // default target: Italian
       } catch (e) {
@@ -65,12 +67,6 @@ export default function TranslatorScreen() {
   }, []);
 
   useEffect(() => {
-    if (prefsLoaded) {
-      AsyncStorage.setItem('translator_inputText', inputText);
-    }
-  }, [inputText, prefsLoaded]);
-
-  useEffect(() => {
     if (prefsLoaded && sourceLang) {
       AsyncStorage.setItem('translator_sourceLang', sourceLang);
     }
@@ -81,6 +77,24 @@ export default function TranslatorScreen() {
       AsyncStorage.setItem('translator_targetLang', targetLang);
     }
   }, [targetLang, prefsLoaded]);
+
+  // Always check clipboard every second, regardless of input focus
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const text = await Clipboard.getStringAsync();
+      setHasClipboardContent(!!text);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Add useEffect to trigger translation when inputText changes and is not empty
+  useEffect(() => {
+    if (inputText.trim() !== '') {
+      handleTranslate();
+    }
+    // Only run when inputText changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputText]);
 
   const handleTranslate = async () => {
     if (!inputText.trim() || !sourceLang || !targetLang) return;
@@ -125,345 +139,292 @@ export default function TranslatorScreen() {
     setTranslatedText(inputText);
   };
 
-  const selectSourceLanguage = (langCode: string) => {
-    setSourceLang(langCode);
-    setShowSourceDropdown(false);
+  const openLanguageModal = (type: 'source' | 'target') => {
+    setLanguageModalType(type);
+    setLanguageModalVisible(true);
   };
 
-  const selectTargetLanguage = (langCode: string) => {
-    setTargetLang(langCode);
-    setShowTargetDropdown(false);
+  const closeLanguageModal = () => {
+    setLanguageModalVisible(false);
+    setLanguageModalType(null);
   };
 
-  const handleCopyInput = async () => {
-    await Clipboard.setStringAsync(inputText);
-    setCopiedInput(true);
-    setTimeout(() => setCopiedInput(false), 1200);
-  };
-
-  const handleCopyOutput = async () => {
-    await Clipboard.setStringAsync(translatedText);
-    setCopiedOutput(true);
-    setTimeout(() => setCopiedOutput(false), 1200);
-  };
-
-  const handleSourceDropdownPress = () => {
-    if (showSourceDropdown) {
-      setShowSourceDropdown(false);
-    } else {
-      Keyboard.dismiss();
-      setTimeout(() => setShowSourceDropdown(true), 10);
-      setShowTargetDropdown(false);
+  const selectLanguage = (code: string) => {
+    if (languageModalType === 'source') {
+      setSourceLang(code);
+    } else if (languageModalType === 'target') {
+      setTargetLang(code);
     }
+    closeLanguageModal();
   };
 
-  const handleTargetDropdownPress = () => {
-    if (showTargetDropdown) {
-      setShowTargetDropdown(false);
-    } else {
-      Keyboard.dismiss();
-      setTimeout(() => setShowTargetDropdown(true), 10);
-      setShowSourceDropdown(false);
-    }
+  // Handler to clear all translation fields
+  const handleNewTranslation = () => {
+    setInputText('');
+    setTranslatedText(''); // Ensure output is cleared
+    setError(null);
+    setCopiedInput(false);
+    setCopiedOutput(false);
+    setActiveTab('examples');
+    setTimeout(() => {
+      scrollRef?.current?.scrollTo({ y: 0, animated: true });
+    }, 100);
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-    },
-    content: {
-      flex: 1,
-      padding: 16,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      color: Colors[colorScheme ?? 'light'].text,
-      marginBottom: 24,
-      textAlign: 'center',
-    },
-    languageContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    languagePicker: {
-      flex: 1,
-      padding: 12,
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-    },
-    languageText: {
-      color: Colors[colorScheme ?? 'light'].text,
-      fontSize: 16,
-    },
-    swapButton: {
-      marginHorizontal: 16,
-      padding: 8,
-    },
-    swapButtonText: {
-      fontSize: 24,
-      color: Colors[colorScheme ?? 'light'].tint,
-    },
-    inputContainer: {
-      marginBottom: 16,
-    },
-    textInput: {
-      minHeight: 120,
-      padding: 16,
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-      color: Colors[colorScheme ?? 'light'].text,
-      fontSize: 16,
-      textAlignVertical: 'top',
-    },
-    translateButton: {
-      backgroundColor: Colors[colorScheme ?? 'light'].tint,
-      paddingVertical: 14,
-      paddingHorizontal: 24,
-      borderRadius: 8,
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    translateButtonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    resultContainer: {
-      flex: 1,
-      padding: 16,
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-      minHeight: 120,
-    },
-    resultText: {
-      color: Colors[colorScheme ?? 'light'].text,
-      fontSize: 16,
-      lineHeight: 24,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    dropdownContainer: {
-      position: 'relative',
-      flex: 1,
-    },
-    dropdown: {
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      backgroundColor: Colors[colorScheme ?? 'light'].background, // Use background, not card, for solid color
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: Colors[colorScheme ?? 'light'].tint,
-      maxHeight: 220,
-      zIndex: 1000,
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.18,
-      shadowRadius: 8,
-      paddingVertical: 4,
-    },
-    dropdownItem: {
-      paddingVertical: 14,
-      paddingHorizontal: 18,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-      backgroundColor: Colors[colorScheme ?? 'light'].background, // Ensure each item is solid
-    },
-    dropdownItemLast: {
-      borderBottomWidth: 0,
-    },
-    dropdownItemText: {
-      color: Colors[colorScheme ?? 'light'].text,
-      fontSize: 17,
-      letterSpacing: 0.2,
-    },
-    languagePickerTouchable: {
-      flex: 1,
-      padding: 12,
-      backgroundColor: Colors[colorScheme ?? 'light'].background,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    dropdownArrow: {
-      color: Colors[colorScheme ?? 'light'].tabIconDefault,
-      fontSize: 12,
-    },
-    errorText: {
-      color: '#ff4444',
-      fontStyle: 'italic',
-    },
-  });
+  // Add a ref for the ScrollView
+  const scrollRef = React.useRef<ScrollView>(null);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.header}>Translator</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F7FB' }}>
 
-        <View style={styles.languageContainer}>
-          <View style={styles.dropdownContainer}>
-            <TouchableOpacity 
-              style={styles.languagePickerTouchable}
-              onPress={handleSourceDropdownPress}
-            >
-              <Text style={styles.languageText}>
-                {languages.find(lang => lang.code === sourceLang)?.name || 'English'}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </TouchableOpacity>
 
-            {showSourceDropdown && (
-              <ScrollView style={styles.dropdown}>
-                {languages.filter(lang => lang.code !== targetLang).map((language, index, filteredArray) => (
-                  <TouchableOpacity
-                    key={language.code}
-                    style={[
-                      styles.dropdownItem,
-                      index === filteredArray.length - 1 && styles.dropdownItemLast
-                    ]}
-                    onPress={() => selectSourceLanguage(language.code)}
-                  >
-                    <Text style={styles.dropdownItemText}>{language.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
+        <View style={{ flex: 1 }}>
 
-          <TouchableOpacity style={styles.swapButton} onPress={swapLanguages}>
-            <Text style={styles.swapButtonText}>⇄</Text>
-          </TouchableOpacity>
-
-          <View style={styles.dropdownContainer}>
-            <TouchableOpacity 
-              style={styles.languagePickerTouchable}
-              onPress={handleTargetDropdownPress}
-            >
-              <Text style={styles.languageText}>
-                {languages.find(lang => lang.code === targetLang)?.name || 'Spanish'}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </TouchableOpacity>
-
-            {showTargetDropdown && (
-              <ScrollView style={styles.dropdown}>
-                {languages.filter(lang => lang.code !== sourceLang).map((language, index, filteredArray) => (
-                  <TouchableOpacity
-                    key={language.code}
-                    style={[
-                      styles.dropdownItem,
-                      index === filteredArray.length - 1 && styles.dropdownItemLast
-                    ]}
-                    onPress={() => selectTargetLanguage(language.code)}
-                  >
-                    <Text style={styles.dropdownItemText}>{language.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-
-        <View style={[styles.inputContainer, { position: 'relative' }]}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Enter text to translate..."
-            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
-            value={inputText}
-            onChangeText={setInputText}
-            onFocus={() => {
-              setShowSourceDropdown(false);
-              setShowTargetDropdown(false);
-            }}
-            multiline
-          />
-          <TouchableOpacity
-            style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
-            onPress={handleCopyInput}
-            disabled={!inputText}
-          >
-            <Ionicons name={copiedInput ? 'checkmark' : 'copy-outline'} size={22} color={copiedInput ? Colors[colorScheme ?? 'light'].tint : Colors[colorScheme ?? 'light'].tabIconDefault} />
-          </TouchableOpacity>
-          {copiedInput && (
-            <Animated.View
-              entering={FadeIn}
-              exiting={FadeOut}
-              style={{ position: 'absolute', top: 40, right: 12, backgroundColor: '#222', padding: 6, borderRadius: 6 }}
-            >
-              <Text style={{ color: '#fff', fontSize: 12 }}>Copied!</Text>
-            </Animated.View>
-          )}
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.translateButton, { marginBottom: 24 }]}
-          onPress={() => {
-            Keyboard.dismiss();
-            setShowSourceDropdown(false);
-            setShowTargetDropdown(false);
-            handleTranslate();
-          }}
-          disabled={isLoading || !inputText.trim()}
-        >
-          <Text style={styles.translateButtonText}>
-            {isLoading ? 'Translating...' : 'Translate'}
-          </Text>
-        </TouchableOpacity>
-
-        <Animated.View
-          style={styles.resultContainer}
-          entering={FadeIn}
-          exiting={FadeOut}
-        >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].tint} />
-            </View>
-          ) : error ? (
-            <Text style={[styles.resultText, styles.errorText]}>{error}</Text>
-          ) : (
-            <>
-              <Text style={styles.resultText}>
-                {translatedText || 'Translation will appear here...'}
-              </Text>
-              {translatedText ? (
-                <TouchableOpacity
-                  style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
-                  onPress={handleCopyOutput}
-                >
-                  <Ionicons name={copiedOutput ? 'checkmark' : 'copy-outline'} size={22} color={copiedOutput ? Colors[colorScheme ?? 'light'].tint : Colors[colorScheme ?? 'light'].tabIconDefault} />
+            {/* Header Bar */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, backgroundColor: '#F6F7FB' }}>
+                <TouchableOpacity onPress={() => Alert.alert('History pressed')}>
+                    <Ionicons name="refresh" size={22} color="#0a7ea4" style={{ transform: [{ rotate: '-90deg' }] }} />
                 </TouchableOpacity>
-              ) : null}
-              {copiedOutput && (
-                <Animated.View
-                  entering={FadeIn}
-                  exiting={FadeOut}
-                  style={{ position: 'absolute', top: 40, right: 12, backgroundColor: '#222', padding: 6, borderRadius: 6 }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 12 }}>Copied!</Text>
-                </Animated.View>
-              )}
-            </>
-          )}
-        </Animated.View>
-      </ScrollView>
-    </SafeAreaView>
+                <Text style={{ fontSize: 20, fontWeight: '600', color: '#11181C' }}>Translator</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => Alert.alert('Settings pressed')}>
+                        <Ionicons name="settings-outline" size={22} color="#0a7ea4" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={{ paddingBottom: 100 }} // Reduced padding to minimize gap above tab bar
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+
+
+            {/* Language Selector */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, marginBottom: 8 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, elevation: 2 }}>
+                <TouchableOpacity onPress={() => openLanguageModal('source')}>
+                  <Text style={{ fontSize: 18, fontWeight: '500', color: '#11181C', marginRight: 8 }}>{languages.find(l => l.code === sourceLang)?.name || 'Italian'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={swapLanguages} style={{ marginHorizontal: 8 }}>
+                  <Ionicons name="swap-horizontal" size={24} color="#1976FF" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => openLanguageModal('target')}>
+                  <Text style={{ fontSize: 18, fontWeight: '500', color: '#11181C', marginLeft: 8 }}>{languages.find(l => l.code === targetLang)?.name || 'English'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Language Modal */}
+            <Modal
+              visible={languageModalVisible}
+              transparent
+              animationType="slide"
+              onRequestClose={closeLanguageModal}
+            >
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '80%' }}>
+                  <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 16, textAlign: 'center' }}>
+                    Select {languageModalType === 'source' ? 'Input' : 'Target'} Language
+                  </Text>
+                  <FlatList
+                    data={
+                      languageModalType === 'source'
+                        ? languages.filter(l => l.code !== targetLang)
+                        : languages.filter(l => l.code !== sourceLang)
+                    }
+                    keyExtractor={item => item.code}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        onPress={() => selectLanguage(item.code)}
+                        style={({ pressed }) => ({
+                          paddingVertical: 12,
+                          paddingHorizontal: 8,
+                          backgroundColor: pressed ? '#E6F0FF' : 'white',
+                          borderRadius: 8,
+                          marginBottom: 4,
+                        })}
+                      >
+                        <Text style={{ fontSize: 18, color: '#11181C' }}>{item.name}</Text>
+                      </Pressable>
+                    )}
+                    style={{ maxHeight: 300 }}
+                  />
+                  <TouchableOpacity onPress={closeLanguageModal} style={{ marginTop: 16, alignSelf: 'center' }}>
+                    <Text style={{ color: '#1976FF', fontWeight: '600', fontSize: 16 }}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+
+            {/* Input Card */}
+            <View style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, minHeight: 180, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16 }}>{languages.find(l => l.code === sourceLang)?.name || 'Italian'}</Text>
+                <Ionicons name="arrow-down-circle-outline" size={18} color="#1976FF" style={{ marginLeft: 6 }} />
+              </View>
+              <TextInput
+                style={{ fontSize: 24, color: '#11181C', minHeight: 60, marginBottom: 8, fontWeight: '400' }}
+                value={draftInputText}
+                onChangeText={setDraftInputText}
+                placeholder="Enter your text"
+                placeholderTextColor="#B0B0B0"
+                multiline
+                returnKeyType="done"
+                blurOnSubmit={true}
+                onSubmitEditing={() => setInputText(draftInputText)}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => { setInputFocused(false); setInputText(draftInputText); }}
+              />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const text = await Clipboard.getStringAsync();
+                      setHasClipboardContent(!!text);
+                      if (text) {
+                        setDraftInputText(text);
+                        if (!inputFocused) {
+                          setInputText(text); // trigger translation if not editing
+                        }
+                      }
+                    }}
+                    disabled={!hasClipboardContent}
+                    style={{
+                      backgroundColor: hasClipboardContent ? '#E6F0FF' : '#F0F0F0',
+                      borderRadius: 12,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      alignSelf: 'center', // changed from 'flex-start' to 'center'
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                      opacity: hasClipboardContent ? 1 : 0.5,
+                    }}
+                  >
+                    <Ionicons name="clipboard-outline" size={18} color={hasClipboardContent ? '#1976FF' : '#B0B0B0'} style={{ marginRight: 6 }} />
+                    <Text style={{ color: hasClipboardContent ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 16 }}>Paste</Text>
+                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => Alert.alert('Camera pressed')} style={{ backgroundColor: '#1976FF', borderRadius: 20, padding: 10, marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="camera-outline" size={22} color="white" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => Alert.alert('Mic pressed')} style={{ backgroundColor: '#1976FF', borderRadius: 20, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="mic-outline" size={22} color="white" />
+                    </TouchableOpacity>
+                  </View>
+              </View>
+            </View>
+
+            {/* Translation Card */}
+            {(isLoading || translatedText !== '') && (
+              <Animated.View
+                entering={FadeIn}
+                exiting={FadeOut}
+                style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+                onStartShouldSetResponder={() => true}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16 }}>{languages.find(l => l.code === targetLang)?.name || 'English'}</Text>
+                    <Ionicons name="play-circle-outline" size={18} color="#1976FF" style={{ marginLeft: 6 }} />
+                  </View>
+                  <TouchableOpacity onPress={() => Alert.alert('Close translation pressed')} style={{ backgroundColor: '#F6F7FB', borderRadius: 16, padding: 4 }}>
+                    <Ionicons name="close" size={18} color="#B0B0B0" />
+                  </TouchableOpacity>
+                </View>
+                {isLoading ? (
+                  <>
+                    <MotiView
+                      from={{ opacity: 0.3 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ loop: true, type: 'timing', duration: 900 }}
+                      style={{ width: '60%', height: 32, borderRadius: 8, backgroundColor: '#E6EAF2', marginBottom: 8, alignSelf: 'flex-start' }}
+                    />
+                    <MotiView
+                      from={{ opacity: 0.3 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ loop: true, type: 'timing', duration: 900, delay: 150 }}
+                      style={{ width: '40%', height: 18, borderRadius: 6, backgroundColor: '#E6EAF2', marginBottom: 8, alignSelf: 'flex-start' }}
+                    />
+                    <MotiView
+                      from={{ opacity: 0.3 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ loop: true, type: 'timing', duration: 900, delay: 300 }}
+                      style={{ width: 70, height: 16, borderRadius: 5, backgroundColor: '#E6EAF2', marginBottom: 8, alignSelf: 'flex-start' }}
+                    />
+                    <MotiView
+                      from={{ opacity: 0.3 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ loop: true, type: 'timing', duration: 900, delay: 450 }}
+                      style={{ width: '90%', height: 20, borderRadius: 7, backgroundColor: '#E6EAF2', marginBottom: 12, alignSelf: 'flex-start' }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 24, color: '#1976FF', fontWeight: '700', marginBottom: 4 }}>{translatedText}</Text>
+                    <Text style={{ color: '#B0B0B0', fontSize: 16, marginBottom: 8 }}>wot-is-yor-neim</Text>
+                    <Text style={{ color: '#B0B0B0', fontWeight: '600', marginBottom: 2 }}>MEANING</Text>
+                    <Text style={{ color: '#11181C', fontSize: 15, marginBottom: 12 }}>This phrase is used to inquire about someone's name in a friendly and informal manner.</Text>
+                  </>
+                )}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <TouchableOpacity onPress={() => Alert.alert('Like pressed')} style={{ marginRight: 16 }}>
+                    <Ionicons name="thumbs-up-outline" size={22} color="#1976FF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => Alert.alert('Dislike pressed')} style={{ marginRight: 16 }}>
+                    <Ionicons name="thumbs-down-outline" size={22} color="#1976FF" />
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            )}
+
+            {/* Tabs for Examples, Synonyms, Tone */}
+            <View style={{ flexDirection: 'row', marginHorizontal: 12, marginBottom: 8, backgroundColor: 'white', borderRadius: 16, padding: 4, zIndex: 2 }}>
+              <TouchableOpacity onPress={() => setActiveTab('examples')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'examples' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
+                <Ionicons name="list-outline" size={20} color={activeTab === 'examples' ? '#1976FF' : '#B0B0B0'} />
+                <Text style={{ color: activeTab === 'examples' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Examples</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setActiveTab('synonyms')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'synonyms' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
+                <Ionicons name="git-compare-outline" size={20} color={activeTab === 'synonyms' ? '#1976FF' : '#B0B0B0'} />
+                <Text style={{ color: activeTab === 'synonyms' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Synonyms</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setActiveTab('tone')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'tone' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
+                <Ionicons name="person-outline" size={20} color={activeTab === 'tone' ? '#1976FF' : '#B0B0B0'} />
+                <Text style={{ color: activeTab === 'tone' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Tone</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Everything below the tabs is wrapped in a View to ensure it is part of the ScrollView and scrollable */}
+            <View>
+              {/* Tab Content Visual Only */}
+              <View
+                style={{ backgroundColor: 'white', borderRadius: 16, marginHorizontal: 12, marginBottom: 16, padding: 16 }}
+                onStartShouldSetResponder={() => true}
+              >
+                {activeTab === 'examples' && (
+                  <Text style={{ color: '#11181C', fontSize: 15 }} selectable>{`Come ti chiami? Io sono felice di conoscerti.\nWhat is your name? I am happy to meet you.`}</Text>
+                )}
+                {activeTab === 'synonyms' && (
+                  <Text style={{ color: '#11181C', fontSize: 15 }} selectable>Synonyms visual placeholder</Text>
+                )}
+                {activeTab === 'tone' && (
+                  <Text style={{ color: '#11181C', fontSize: 15 }} selectable>Tone visual placeholder</Text>
+                )}
+              </View>
+
+            </View>
+          </ScrollView>
+          {/* New translation button - now above the tab bar and always visible */}
+          <TouchableOpacity
+            onPress={handleNewTranslation}
+            style={{ position: 'absolute', left: 24, right: 24, bottom: 80, backgroundColor: '#1976FF', borderRadius: 16, paddingVertical: 16, alignItems: 'center', elevation: 4, shadowColor: '#1976FF', shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, zIndex: 20 }}
+          >
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 18 }}>+  New translation</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
