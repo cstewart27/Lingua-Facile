@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator, Im
 import { supabase } from '../utils/supabase';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('');
@@ -55,9 +55,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <Animated.View entering={FadeIn.duration(600)} exiting={FadeOut.duration(400)} style={[styles.card, { backgroundColor: theme.card, shadowColor: theme.text }]}>
         <Image source={require('../assets/images/icon.png')} style={styles.logo} />
         <Text style={[styles.title, { color: theme.text }]}>{mode === 'signIn' ? 'Sign In' : 'Sign Up'}</Text>
-        <Animated.View layout={Layout} style={{ width: '100%' }}>
+        <Animated.View style={{ width: '100%' }}>
           <TextInput
-            style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.icon }]}
+            style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.icon }]}
             placeholder="Email"
             placeholderTextColor={theme.icon}
             autoCapitalize="none"
@@ -66,7 +66,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             onChangeText={setEmail}
           />
           <TextInput
-            style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.icon }]}
+            style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.icon }]}
             placeholder="Password"
             placeholderTextColor={theme.icon}
             secureTextEntry
@@ -75,7 +75,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           />
         </Animated.View>
         {loading ? <ActivityIndicator color={theme.tint} /> : (
-          <Animated.View layout={Layout} style={{ width: '100%' }}>
+          <Animated.View style={{ width: '100%' }}>
             <Button title={mode === 'signIn' ? 'Sign In' : 'Sign Up'} onPress={handleAuth} color={theme.tint} />
             <View style={{ height: 12 }} />
             <Button
@@ -86,7 +86,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </Animated.View>
         )}
         <View style={{ height: 16 }} />
-        <Animated.View layout={Layout}>
+        <Animated.View>
           <Button
             title={mode === 'signIn' ? 'No account? Sign Up' : 'Have an account? Sign In'}
             onPress={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}

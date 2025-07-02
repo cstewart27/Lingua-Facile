@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -15,21 +15,23 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { translateWithDeepL, DeepLTranslationError } from '@/services/deeplService';
 import * as Clipboard from 'expo-clipboard';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TranslatorScreen() {
   const colorScheme = useColorScheme();
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sourceLang, setSourceLang] = useState('en');
-  const [targetLang, setTargetLang] = useState('es');
+  const [sourceLang, setSourceLang] = useState<string | null>(null);
+  const [targetLang, setTargetLang] = useState<string | null>(null);
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedInput, setCopiedInput] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -44,8 +46,44 @@ export default function TranslatorScreen() {
     { code: 'zh', name: 'Chinese' },
   ];
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedInput = await AsyncStorage.getItem('translator_inputText');
+        const savedSource = await AsyncStorage.getItem('translator_sourceLang');
+        const savedTarget = await AsyncStorage.getItem('translator_targetLang');
+        if (savedInput !== null) setInputText(savedInput);
+        setSourceLang(savedSource || 'en'); // default input: English
+        setTargetLang(savedTarget || 'it'); // default target: Italian
+      } catch (e) {
+        setSourceLang('en');
+        setTargetLang('it');
+      } finally {
+        setPrefsLoaded(true);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (prefsLoaded) {
+      AsyncStorage.setItem('translator_inputText', inputText);
+    }
+  }, [inputText, prefsLoaded]);
+
+  useEffect(() => {
+    if (prefsLoaded && sourceLang) {
+      AsyncStorage.setItem('translator_sourceLang', sourceLang);
+    }
+  }, [sourceLang, prefsLoaded]);
+
+  useEffect(() => {
+    if (prefsLoaded && targetLang) {
+      AsyncStorage.setItem('translator_targetLang', targetLang);
+    }
+  }, [targetLang, prefsLoaded]);
+
   const handleTranslate = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !sourceLang || !targetLang) return;
 
     setIsLoading(true);
     setError(null);
@@ -107,6 +145,26 @@ export default function TranslatorScreen() {
     await Clipboard.setStringAsync(translatedText);
     setCopiedOutput(true);
     setTimeout(() => setCopiedOutput(false), 1200);
+  };
+
+  const handleSourceDropdownPress = () => {
+    if (showSourceDropdown) {
+      setShowSourceDropdown(false);
+    } else {
+      Keyboard.dismiss();
+      setTimeout(() => setShowSourceDropdown(true), 10);
+      setShowTargetDropdown(false);
+    }
+  };
+
+  const handleTargetDropdownPress = () => {
+    if (showTargetDropdown) {
+      setShowTargetDropdown(false);
+    } else {
+      Keyboard.dismiss();
+      setTimeout(() => setShowTargetDropdown(true), 10);
+      setShowSourceDropdown(false);
+    }
   };
 
   const styles = StyleSheet.create({
@@ -263,10 +321,7 @@ export default function TranslatorScreen() {
           <View style={styles.dropdownContainer}>
             <TouchableOpacity 
               style={styles.languagePickerTouchable}
-              onPress={() => {
-                setShowTargetDropdown(false);
-                setShowSourceDropdown(!showSourceDropdown);
-              }}
+              onPress={handleSourceDropdownPress}
             >
               <Text style={styles.languageText}>
                 {languages.find(lang => lang.code === sourceLang)?.name || 'English'}
@@ -299,10 +354,7 @@ export default function TranslatorScreen() {
           <View style={styles.dropdownContainer}>
             <TouchableOpacity 
               style={styles.languagePickerTouchable}
-              onPress={() => {
-                setShowSourceDropdown(false);
-                setShowTargetDropdown(!showTargetDropdown);
-              }}
+              onPress={handleTargetDropdownPress}
             >
               <Text style={styles.languageText}>
                 {languages.find(lang => lang.code === targetLang)?.name || 'Spanish'}
@@ -377,7 +429,6 @@ export default function TranslatorScreen() {
 
         <Animated.View
           style={styles.resultContainer}
-          layout={Layout}
           entering={FadeIn}
           exiting={FadeOut}
         >
