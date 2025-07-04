@@ -71,7 +71,7 @@ export const translateWithDeepL = async (
   const { text, sourceLanguage, targetLanguage, apiKey } = request;
 
   // Use provided API key or fallback to environment variable
-  const deeplApiKey = apiKey || Constants.expoConfig?.extra?.EXPO_PUBLIC_DEEPL_API_KEY || process.env.EXPO_PUBLIC_DEEPL_API_KEY;
+  const deeplApiKey = apiKey || Constants.expoConfig?.extra?.EXPO_PUBLIC_DEEPL_API_KEY;
 
   if (!deeplApiKey) {
     throw new DeepLTranslationError('API key is required. Provide it in the request or set DEEPL_API_KEY environment variable.');

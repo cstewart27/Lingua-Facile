@@ -1,5 +1,7 @@
-const supabaseFunctionUrl = process.env.EXPO_PUBLIC_SUPABASE_CALL_OPENAI_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+import Constants from 'expo-constants';
+
+const supabaseFunctionUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_CALL_OPENAI_URL;
+const supabaseAnonKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const fetchCEFRLevels = async (sentence: string, levels: string[], dynamicCheck: boolean) => {
     if (!supabaseFunctionUrl) throw new Error('Supabase function URL not set in env');

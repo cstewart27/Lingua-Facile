@@ -1,7 +1,8 @@
+import Constants from 'expo-constants';
 import { supabase } from '../utils/supabase';
 
-const supabaseFunctionUrl = process.env.EXPO_PUBLIC_SUPABASE_CALL_DETECT_LANGUAGE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseFunctionUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_CALL_DETECT_LANGUAGE_URL;
+const supabaseAnonKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const detectLanguageFromEdge = async (sentence: string): Promise<string> => {
     if (!supabaseFunctionUrl) {
