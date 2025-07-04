@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Keyboard,
@@ -18,7 +17,10 @@ import * as Clipboard from 'expo-clipboard';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {  MotiView } from 'moti';
+import { MotiView } from 'moti';
+import { InputCard } from '../../components/translator/InputCard';
+import { LanguageSelector } from '../../components/translator/LanguageSelector';
+import { TranslationCard } from '../../components/translator/TranslationCard';
 
 export default function TranslatorScreen() {
   const [inputText, setInputText] = useState('');
@@ -136,6 +138,7 @@ export default function TranslatorScreen() {
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
     setInputText(translatedText);
+    setDraftInputText(translatedText);
     setTranslatedText(inputText);
   };
 
@@ -203,182 +206,40 @@ export default function TranslatorScreen() {
 
 
             {/* Language Selector */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, marginBottom: 8 }}>
-              <View style={{ backgroundColor: 'white', borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, elevation: 2 }}>
-                <TouchableOpacity onPress={() => openLanguageModal('source')}>
-                  <Text style={{ fontSize: 18, fontWeight: '500', color: '#11181C', marginRight: 8 }}>{languages.find(l => l.code === sourceLang)?.name || 'Italian'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={swapLanguages} style={{ marginHorizontal: 8 }}>
-                  <Ionicons name="swap-horizontal" size={24} color="#1976FF" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => openLanguageModal('target')}>
-                  <Text style={{ fontSize: 18, fontWeight: '500', color: '#11181C', marginLeft: 8 }}>{languages.find(l => l.code === targetLang)?.name || 'English'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Language Modal */}
-            <Modal
-              visible={languageModalVisible}
-              transparent
-              animationType="slide"
-              onRequestClose={closeLanguageModal}
-            >
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '80%' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 16, textAlign: 'center' }}>
-                    Select {languageModalType === 'source' ? 'Input' : 'Target'} Language
-                  </Text>
-                  <FlatList
-                    data={
-                      languageModalType === 'source'
-                        ? languages.filter(l => l.code !== targetLang)
-                        : languages.filter(l => l.code !== sourceLang)
-                    }
-                    keyExtractor={item => item.code}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        onPress={() => selectLanguage(item.code)}
-                        style={({ pressed }) => ({
-                          paddingVertical: 12,
-                          paddingHorizontal: 8,
-                          backgroundColor: pressed ? '#E6F0FF' : 'white',
-                          borderRadius: 8,
-                          marginBottom: 4,
-                        })}
-                      >
-                        <Text style={{ fontSize: 18, color: '#11181C' }}>{item.name}</Text>
-                      </Pressable>
-                    )}
-                    style={{ maxHeight: 300 }}
-                  />
-                  <TouchableOpacity onPress={closeLanguageModal} style={{ marginTop: 16, alignSelf: 'center' }}>
-                    <Text style={{ color: '#1976FF', fontWeight: '600', fontSize: 16 }}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
+            <LanguageSelector
+              sourceLang={sourceLang}
+              targetLang={targetLang}
+              languages={languages}
+              openLanguageModal={openLanguageModal}
+              openLanguageModalSwap={swapLanguages}
+              languageModalVisible={languageModalVisible}
+              languageModalType={languageModalType}
+              closeLanguageModal={closeLanguageModal}
+              selectLanguage={selectLanguage}
+            />
 
             {/* Input Card */}
-            <View style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, minHeight: 180, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16 }}>{languages.find(l => l.code === sourceLang)?.name || 'Italian'}</Text>
-                <Ionicons name="arrow-down-circle-outline" size={18} color="#1976FF" style={{ marginLeft: 6 }} />
-              </View>
-              <TextInput
-                style={{ fontSize: 24, color: '#11181C', minHeight: 60, marginBottom: 8, fontWeight: '400' }}
-                value={draftInputText}
-                onChangeText={setDraftInputText}
-                placeholder="Enter your text"
-                placeholderTextColor="#B0B0B0"
-                multiline
-                returnKeyType="done"
-                blurOnSubmit={true}
-                onSubmitEditing={() => setInputText(draftInputText)}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => { setInputFocused(false); setInputText(draftInputText); }}
-              />
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                  <TouchableOpacity
-                    onPress={async () => {
-                      const text = await Clipboard.getStringAsync();
-                      setHasClipboardContent(!!text);
-                      if (text) {
-                        setDraftInputText(text);
-                        if (!inputFocused) {
-                          setInputText(text); // trigger translation if not editing
-                        }
-                      }
-                    }}
-                    disabled={!hasClipboardContent}
-                    style={{
-                      backgroundColor: hasClipboardContent ? '#E6F0FF' : '#F0F0F0',
-                      borderRadius: 12,
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      alignSelf: 'center', // changed from 'flex-start' to 'center'
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginBottom: 8,
-                      opacity: hasClipboardContent ? 1 : 0.5,
-                    }}
-                  >
-                    <Ionicons name="clipboard-outline" size={18} color={hasClipboardContent ? '#1976FF' : '#B0B0B0'} style={{ marginRight: 6 }} />
-                    <Text style={{ color: hasClipboardContent ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 16 }}>Paste</Text>
-                  </TouchableOpacity>
-                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => Alert.alert('Camera pressed')} style={{ backgroundColor: '#1976FF', borderRadius: 20, padding: 10, marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name="camera-outline" size={22} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => Alert.alert('Mic pressed')} style={{ backgroundColor: '#1976FF', borderRadius: 20, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name="mic-outline" size={22} color="white" />
-                    </TouchableOpacity>
-                  </View>
-              </View>
-            </View>
+            <InputCard
+              draftInputText={draftInputText}
+              setDraftInputText={setDraftInputText}
+              inputFocused={inputFocused}
+              setInputFocused={setInputFocused}
+              setInputText={setInputText}
+              hasClipboardContent={hasClipboardContent}
+              languages={languages}
+              sourceLang={sourceLang}
+            />
 
             {/* Translation Card */}
             {(isLoading || translatedText !== '') && (
-              <Animated.View
-                entering={FadeIn}
-                exiting={FadeOut}
-                style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
-                onStartShouldSetResponder={() => true}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16 }}>{languages.find(l => l.code === targetLang)?.name || 'English'}</Text>
-                    <Ionicons name="play-circle-outline" size={18} color="#1976FF" style={{ marginLeft: 6 }} />
-                  </View>
-                  <TouchableOpacity onPress={() => Alert.alert('Close translation pressed')} style={{ backgroundColor: '#F6F7FB', borderRadius: 16, padding: 4 }}>
-                    <Ionicons name="close" size={18} color="#B0B0B0" />
-                  </TouchableOpacity>
-                </View>
-                {isLoading ? (
-                  <>
-                    <MotiView
-                      from={{ opacity: 0.3 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ loop: true, type: 'timing', duration: 900 }}
-                      style={{ width: '60%', height: 32, borderRadius: 8, backgroundColor: '#E6EAF2', marginBottom: 8, alignSelf: 'flex-start' }}
-                    />
-                    <MotiView
-                      from={{ opacity: 0.3 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ loop: true, type: 'timing', duration: 900, delay: 150 }}
-                      style={{ width: '40%', height: 18, borderRadius: 6, backgroundColor: '#E6EAF2', marginBottom: 8, alignSelf: 'flex-start' }}
-                    />
-                    <MotiView
-                      from={{ opacity: 0.3 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ loop: true, type: 'timing', duration: 900, delay: 300 }}
-                      style={{ width: 70, height: 16, borderRadius: 5, backgroundColor: '#E6EAF2', marginBottom: 8, alignSelf: 'flex-start' }}
-                    />
-                    <MotiView
-                      from={{ opacity: 0.3 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ loop: true, type: 'timing', duration: 900, delay: 450 }}
-                      style={{ width: '90%', height: 20, borderRadius: 7, backgroundColor: '#E6EAF2', marginBottom: 12, alignSelf: 'flex-start' }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Text style={{ fontSize: 24, color: '#1976FF', fontWeight: '700', marginBottom: 4 }}>{translatedText}</Text>
-                    <Text style={{ color: '#B0B0B0', fontSize: 16, marginBottom: 8 }}>wot-is-yor-neim</Text>
-                    <Text style={{ color: '#B0B0B0', fontWeight: '600', marginBottom: 2 }}>MEANING</Text>
-                    <Text style={{ color: '#11181C', fontSize: 15, marginBottom: 12 }}>This phrase is used to inquire about someone's name in a friendly and informal manner.</Text>
-                  </>
-                )}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <TouchableOpacity onPress={() => Alert.alert('Like pressed')} style={{ marginRight: 16 }}>
-                    <Ionicons name="thumbs-up-outline" size={22} color="#1976FF" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => Alert.alert('Dislike pressed')} style={{ marginRight: 16 }}>
-                    <Ionicons name="thumbs-down-outline" size={22} color="#1976FF" />
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
+              <TranslationCard
+                isLoading={isLoading}
+                translatedText={translatedText}
+                copiedOutput={copiedOutput}
+                setCopiedOutput={setCopiedOutput}
+                targetLang={targetLang}
+                languages={languages}
+              />
             )}
 
             {/* Tabs for Examples, Synonyms, Tone */}
