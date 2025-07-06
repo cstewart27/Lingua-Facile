@@ -5,6 +5,9 @@ const supabaseFunctionUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_CA
 const supabaseAnonKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const detectLanguageFromEdge = async (sentence: string): Promise<string> => {
+    if (!sentence || sentence.trim().length < 5) {
+        throw new Error('Input is too short for language detection.');
+    }
     if (!supabaseFunctionUrl) {
         console.error('Supabase Detect Language function URL not set in env');
         throw new Error('Supabase Detect Language function URL not set in env');
@@ -24,9 +27,11 @@ export const detectLanguageFromEdge = async (sentence: string): Promise<string> 
     });
     if (!res.ok) {
         const errorText = await res.text();
+        console.warn('sentence:', sentence);
         console.error('Detect language error:', errorText);
         throw new Error(`Failed to detect language: ${errorText}`);
     }
     const { language } = await res.json();
+    console.log('Detected language:', language);
     return language || 'unknown';
 };
