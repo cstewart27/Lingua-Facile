@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { MotiView } from 'moti';
 
 interface TranslationCardProps {
   isLoading: boolean;
@@ -10,6 +12,7 @@ interface TranslationCardProps {
   setCopiedOutput: (v: boolean) => void;
   targetLang: string | null;
   languages: { code: string; name: string }[];
+  handleNewTranslation: () => void; // Add this line
 }
 
 export const TranslationCard: React.FC<TranslationCardProps> = ({
@@ -19,20 +22,36 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
   setCopiedOutput,
   targetLang,
   languages,
+  handleNewTranslation
 }) => {
   return (
-    <View style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+    <Animated.View
+      entering={FadeIn.duration(500)}
+      exiting={FadeOut.duration(350)}
+      style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16 }}>{languages.find(l => l.code === targetLang)?.name || 'English'}</Text>
           <Ionicons name="play-circle-outline" size={18} color="#1976FF" style={{ marginLeft: 6 }} />
         </View>
-        <TouchableOpacity onPress={() => Alert.alert('Close translation pressed')} style={{ backgroundColor: '#F6F7FB', borderRadius: 16, padding: 4 }}>
+        <TouchableOpacity onPress={handleNewTranslation} style={{ backgroundColor: '#F6F7FB', borderRadius: 16, padding: 4 }}>
           <Ionicons name="close" size={18} color="#B0B0B0" />
         </TouchableOpacity>
       </View>
       {isLoading ? (
-        <Text style={{ color: '#B0B0B0', fontSize: 16 }}>Translating...</Text>
+        <View>
+          {[...Array(2)].map((_, idx) => (
+            <MotiView
+              key={idx}
+              from={{ opacity: 0.4 }}
+              animate={{ opacity: 1 }}
+              transition={{ loop: true, type: 'timing', duration: 900, delay: idx * 120, repeatReverse: true }}
+              style={{ height: 24, backgroundColor: '#E6F0FF', borderRadius: 8, marginBottom: 12, width: idx === 0 ? '80%' : '60%' }}
+            />
+          ))}
+          <Text style={{ color: '#B0B0B0', fontSize: 16 }}>Translating...</Text>
+        </View>
       ) : (
         <>
           <Text style={{ fontSize: 24, color: '#1976FF', fontWeight: '700', marginBottom: 4 }}>{translatedText}</Text>
@@ -71,7 +90,6 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           </View>
         </>
       )}
-    </View>
+    </Animated.View>
   );
 };
-

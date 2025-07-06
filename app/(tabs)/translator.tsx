@@ -221,66 +221,74 @@ export default function TranslatorScreen() {
               setCopiedOutput={setCopiedOutput}
               targetLang={targetLang}
               languages={languages}
+              handleNewTranslation={handleNewTranslation}
             />
           )}
 
-          {/* Tabs for Examples, Synonyms, Tone */}
-          <View style={{ flexDirection: 'row', marginHorizontal: 12, marginBottom: 8, backgroundColor: 'white', borderRadius: 16, padding: 4, zIndex: 2 }}>
-            <TouchableOpacity onPress={() => setActiveTab('examples')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'examples' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
-              <Ionicons name="list-outline" size={20} color={activeTab === 'examples' ? '#1976FF' : '#B0B0B0'} />
-              <Text style={{ color: activeTab === 'examples' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Examples</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setActiveTab('synonyms')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'synonyms' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
-              <Ionicons name="git-compare-outline" size={20} color={activeTab === 'synonyms' ? '#1976FF' : '#B0B0B0'} />
-              <Text style={{ color: activeTab === 'synonyms' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Synonyms</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setActiveTab('tone')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'tone' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
-              <Ionicons name="person-outline" size={20} color={activeTab === 'tone' ? '#1976FF' : '#B0B0B0'} />
-              <Text style={{ color: activeTab === 'tone' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Tone</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Everything below the tabs is wrapped in a View to ensure it is part of the ScrollView and scrollable */}
-          <View>
-            {/* Tab Content Visual Only */}
-            <View
-              style={{ backgroundColor: 'white', borderRadius: 16, marginHorizontal: 12, marginBottom: 50, padding: 16 }}
-              onStartShouldSetResponder={() => true}
-            >
-              {activeTab === 'examples' && (
-                <Text style={{ color: '#11181C', fontSize: 15 }} selectable>{`Come ti chiami? Io sono felice di conoscerti.\nWhat is your name? I am happy to meet you.`}</Text>
-              )}
-              {activeTab === 'synonyms' && (
-                <Text style={{ color: '#11181C', fontSize: 15 }} selectable>Synonyms visual placeholder</Text>
-              )}
-              {activeTab === 'tone' && (
-                <Text style={{ color: '#11181C', fontSize: 15 }} selectable>Tone visual placeholder</Text>
-              )}
-            </View>
-          </View>
+          {/* Tabs for Examples, Synonyms, Tone and tab content only if there is a result */}
+          <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(300)}>
+          {translatedText !== '' && (
+            <>
+              <View style={{ flexDirection: 'row', marginHorizontal: 12, marginBottom: 8, backgroundColor: 'white', borderRadius: 16, padding: 4, zIndex: 2 }}>
+                <TouchableOpacity onPress={() => setActiveTab('examples')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'examples' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
+                  <Ionicons name="list-outline" size={20} color={activeTab === 'examples' ? '#1976FF' : '#B0B0B0'} />
+                  <Text style={{ color: activeTab === 'examples' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Examples</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setActiveTab('synonyms')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'synonyms' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
+                  <Ionicons name="git-compare-outline" size={20} color={activeTab === 'synonyms' ? '#1976FF' : '#B0B0B0'} />
+                  <Text style={{ color: activeTab === 'synonyms' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Synonyms</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setActiveTab('tone')} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: activeTab === 'tone' ? '#E6F0FF' : 'transparent', borderRadius: 12 }}>
+                  <Ionicons name="person-outline" size={20} color={activeTab === 'tone' ? '#1976FF' : '#B0B0B0'} />
+                  <Text style={{ color: activeTab === 'tone' ? '#1976FF' : '#B0B0B0', fontWeight: '600', fontSize: 14 }}>Tone</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Everything below the tabs is wrapped in a View to ensure it is part of the ScrollView and scrollable */}
+              <View>
+                {/* Tab Content Visual Only */}
+                <View
+                  style={{ backgroundColor: 'white', borderRadius: 16, marginHorizontal: 12, marginBottom: 50, padding: 16 }}
+                  onStartShouldSetResponder={() => true}
+                >
+                  {activeTab === 'examples' && (
+                    <Text style={{ color: '#11181C', fontSize: 15 }} selectable>{`Come ti chiami? Io sono felice di conoscerti.\nWhat is your name? I am happy to meet you.`}</Text>
+                  )}
+                  {activeTab === 'synonyms' && (
+                    <Text style={{ color: '#11181C', fontSize: 15 }} selectable>Synonyms visual placeholder</Text>
+                  )}
+                  {activeTab === 'tone' && (
+                    <Text style={{ color: '#11181C', fontSize: 15 }} selectable>Tone visual placeholder</Text>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+          </Animated.View>
         </ScrollView>
         {/* Floating New translation button - absolutely positioned relative to the screen */}
-        <TouchableOpacity
-          onPress={handleNewTranslation}
-          style={{
-            position: 'absolute',
-            left: 24,
-            right: 24,
-            bottom: 100, // Increase to float above tab bar
-            backgroundColor: '#1976FF',
-            borderRadius: 16,
-            paddingVertical: 16,
-            alignItems: 'center',
-            elevation: 4,
-            shadowColor: '#1976FF',
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 2 },
-            zIndex: 20,
-          }}
-        >
-          <Text style={{ color: 'white', fontWeight: '700', fontSize: 18 }}>+  New translation</Text>
-        </TouchableOpacity>
+        {translatedText !== '' && (
+          <TouchableOpacity
+            onPress={handleNewTranslation}
+            style={{
+              position: 'absolute',
+              left: 24,
+              right: 24,
+              bottom: 100, // Increase to float above tab bar
+              backgroundColor: '#1976FF',
+              borderRadius: 16,
+              paddingVertical: 16,
+              alignItems: 'center',
+              elevation: 4,
+              shadowColor: '#1976FF',
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              zIndex: 20,
+            }}
+          >
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 18 }}>+  New translation</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableWithoutFeedback>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, ActivityIndicator, ScrollView, StyleSheet, Modal, TouchableOpacity, Keyboard, Pressable } from 'react-native';
+import { View, Text, Button, ActivityIndicator, ScrollView, StyleSheet, Modal, TouchableOpacity, Keyboard, Pressable } from 'react-native';
 import { fetchCEFRLevels, CEFRResponse } from '../../services/cefrService';
 import {getVerbData} from "@/services/getVerbData";
 import { useCEFRSettings } from '../store/useCEFRSettings';
@@ -9,6 +9,8 @@ import { Colors } from '@/constants/Colors';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { MotiView } from 'moti';
 import * as Clipboard from 'expo-clipboard';
+import { CEFRInput } from '../../components/cefr/CEFRInput';
+import { useClipboardWatcher } from '../../hooks/useClipboardWatcher';
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -22,20 +24,16 @@ export default function CEFRChecker() {
   const [analyzedInput, setAnalyzedInput] = useState('');
   const [showAnalysis, setShowAnalysis] = useState(true);
   const [showResults, setShowResults] = useState(true);
-  const [hasClipboardContent, setHasClipboardContent] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
 
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
+  // Use custom clipboard watcher hook
+  const hasClipboardContent = useClipboardWatcher();
+
   useEffect(() => {
     hydrate();
-    const checkClipboard = async () => {
-      const text = await Clipboard.getStringAsync();
-      setHasClipboardContent(!!text);
-    };
-    const interval = setInterval(checkClipboard, 1000);
-    return () => clearInterval(interval);
   }, [hydrate]);
 
   const getNextLevel = (level: string) => {
@@ -72,52 +70,26 @@ export default function CEFRChecker() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F6F7FB' }}>
-      {/* Removed settings modal, now handled globally in layout */}
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.container, { backgroundColor: '#F6F7FB' }]} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeIn.duration(500)}>
           <View style={{ alignItems: 'center', width: '100%' }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, padding: 16, minHeight: 100, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, width: '100%', maxWidth: 500 }}>
-              <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16, marginBottom: 8 }}>Sentence</Text>
-              <TextInput
-                style={{ fontSize: 20, color: '#11181C', minHeight: 60, marginBottom: 8, fontWeight: '400', width: '100%' }}
-                value={input}
-                onChangeText={setInput}
-                placeholder="Enter a sentence..."
-                placeholderTextColor="#B0B0B0"
-                multiline
-                returnKeyType="done"
-                blurOnSubmit={true}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                onSubmitEditing={() => {
-                  if (input.trim() && !loading) {
-                    Keyboard.dismiss();
-                    handleCheck();
-                  }
-                }}
-              />
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
-                <TouchableOpacity
-                  onPress={async () => {
-                    const text = await Clipboard.getStringAsync();
-                    if (text) setInput(text);
-                  }}
-                  disabled={!hasClipboardContent}
-                  style={{
-                    backgroundColor: hasClipboardContent ? '#E6F0FF' : '#F0F0F0',
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    opacity: hasClipboardContent ? 1 : 0.6,
-                  }}
-                >
-                  <Ionicons name="clipboard-outline" size={18} color={hasClipboardContent ? '#1976FF' : '#B0B0B0'} style={{ marginRight: 6 }} />
-                  <Text style={{ color: hasClipboardContent ? '#1976FF' : '#B0B0B0', fontWeight: '500' }}>Paste</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            {/* Use CEFRInput component */}
+            <CEFRInput
+              input={input}
+              setInput={setInput}
+              loading={loading}
+              onSubmit={() => {
+                if (input.trim() && !loading) {
+                  Keyboard.dismiss();
+                  handleCheck();
+                }
+              }}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              inputFocused={inputFocused}
+              hasClipboardContent={hasClipboardContent}
+            />
+            {/* Paste from clipboard button removed, now inside CEFRInput */}
             <Animated.View entering={FadeIn.delay(200).duration(500)} style={{ width: '100%', maxWidth: 500 }}>
               <Pressable
                 style={({ pressed }) => [
