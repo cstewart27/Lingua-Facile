@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, ActivityIndicator, ScrollView, StyleSheet, Modal, TouchableOpacity, Keyboard, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchCEFRLevels, CEFRResponse } from '../../services/cefrService';
 import {getVerbData} from "@/services/getVerbData";
 import { useCEFRSettings } from '../store/useCEFRSettings';
-import SettingsScreen from '../../components/ui/Settings';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { MotiView } from 'moti';
+import * as Clipboard from 'expo-clipboard';
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -21,15 +20,22 @@ export default function CEFRChecker() {
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CEFRResponse['analysis'] | null>(null);
   const [analyzedInput, setAnalyzedInput] = useState('');
-  const [settingsVisible, setSettingsVisible] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(true);
   const [showResults, setShowResults] = useState(true);
+  const [hasClipboardContent, setHasClipboardContent] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
 
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
   useEffect(() => {
     hydrate();
+    const checkClipboard = async () => {
+      const text = await Clipboard.getStringAsync();
+      setHasClipboardContent(!!text);
+    };
+    const interval = setInterval(checkClipboard, 1000);
+    return () => clearInterval(interval);
   }, [hydrate]);
 
   const getNextLevel = (level: string) => {
@@ -61,92 +67,129 @@ export default function CEFRChecker() {
 
     console.log(await getVerbData(input));
   };
+  // Add a ref for the ScrollView
+  const scrollRef = React.useRef<ScrollView>(null);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <Animated.View entering={FadeIn.duration(600)} exiting={FadeOut.duration(400)} style={[styles.headerRow, { marginBottom: 16 }]}>
-        <Text style={[styles.title, { color: theme.text }]}>CEFR Level Checker</Text>
-        <TouchableOpacity
-          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', height: 40, paddingHorizontal: 8 }}
-          onPress={() => setSettingsVisible(true)}
-          accessibilityLabel="Open settings"
-        >
-          <Ionicons name="settings-outline" size={28} color={theme.icon} />
-        </TouchableOpacity>
-      </Animated.View>
-      <Modal
-        visible={settingsVisible}
-        animationType="slide"
-        onRequestClose={() => setSettingsVisible(false)}
-        presentationStyle="formSheet"
-      >
-        <SettingsScreen onClose={() => setSettingsVisible(false)} />
-      </Modal>
-      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
+    <View style={{ flex: 1, backgroundColor: '#F6F7FB' }}>
+      {/* Removed settings modal, now handled globally in layout */}
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.container, { backgroundColor: '#F6F7FB' }]} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeIn.duration(500)}>
-          <TextInput
-            style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.icon }]}
-            placeholder="Enter a sentence..."
-            placeholderTextColor={theme.icon}
-            value={input}
-            onChangeText={setInput}
-            multiline
-          />
+          <View style={{ alignItems: 'center', width: '100%' }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, padding: 16, minHeight: 100, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, width: '100%', maxWidth: 500 }}>
+              <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16, marginBottom: 8 }}>Sentence</Text>
+              <TextInput
+                style={{ fontSize: 20, color: '#11181C', minHeight: 60, marginBottom: 8, fontWeight: '400', width: '100%' }}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Enter a sentence..."
+                placeholderTextColor="#B0B0B0"
+                multiline
+                returnKeyType="done"
+                blurOnSubmit={true}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                onSubmitEditing={() => {
+                  if (input.trim() && !loading) {
+                    Keyboard.dismiss();
+                    handleCheck();
+                  }
+                }}
+              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
+                <TouchableOpacity
+                  onPress={async () => {
+                    const text = await Clipboard.getStringAsync();
+                    if (text) setInput(text);
+                  }}
+                  disabled={!hasClipboardContent}
+                  style={{
+                    backgroundColor: hasClipboardContent ? '#E6F0FF' : '#F0F0F0',
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    opacity: hasClipboardContent ? 1 : 0.6,
+                  }}
+                >
+                  <Ionicons name="clipboard-outline" size={18} color={hasClipboardContent ? '#1976FF' : '#B0B0B0'} style={{ marginRight: 6 }} />
+                  <Text style={{ color: hasClipboardContent ? '#1976FF' : '#B0B0B0', fontWeight: '500' }}>Paste</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <Animated.View entering={FadeIn.delay(200).duration(500)} style={{ width: '100%', maxWidth: 500 }}>
+              <Pressable
+                style={({ pressed }) => [
+                  {
+                    marginTop: 4,
+                    marginBottom: 18,
+                    borderRadius: 16,
+                    paddingVertical: 16,
+                    paddingHorizontal: 24,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: (!input.trim() || loading)
+                      ? '#D6E4FF'
+                      : (pressed ? '#1976FFcc' : '#1976FF'),
+                    shadowColor: '#1976FF',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 6,
+                    elevation: 2,
+                    opacity: (!input.trim() || loading) ? 0.6 : 1,
+                    borderWidth: 0,
+                    width: '100%',
+                  },
+                ]}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  handleCheck();
+                }}
+                disabled={loading || !input.trim()}
+                android_ripple={{ color: '#1976FF22' }}
+              >
+                <Text style={{ color: (!input.trim() || loading) ? '#1976FF' : '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 0.5 }}>
+                  {loading ? 'Checking...' : 'Check CEFR Levels'}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          </View>
         </Animated.View>
-        <Animated.View entering={FadeIn.delay(100).duration(400)} style={{ alignItems: 'center', marginBottom: 10 }}>
+        <Animated.View entering={FadeIn.delay(100).duration(400)} style={{ alignItems: 'center', marginBottom: 18 }}>
           <View style={{
-            backgroundColor: theme.icon + '11',
-            borderRadius: 16,
-            paddingVertical: 7,
-            paddingHorizontal: 18,
+            backgroundColor: '#E6F0FF',
+            borderRadius: 18,
+            paddingVertical: 9,
+            paddingHorizontal: 22,
             flexDirection: 'row',
             alignItems: 'center',
             marginBottom: 2,
-            borderWidth: 1.5,
-            borderColor: theme.icon + '33',
-            shadowColor: theme.icon,
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
+            borderWidth: 0,
+            shadowColor: '#1976FF',
+            shadowOpacity: 0.10,
+            shadowRadius: 8,
             shadowOffset: { width: 0, height: 2 },
             elevation: 2,
+            minWidth: 220,
+            maxWidth: '90%',
+            alignSelf: 'center',
+            justifyContent: 'center',
           }}>
-            <Ionicons name={dynamicCheck ? 'flash-outline' : 'list-outline'} size={18} color={theme.icon} style={{ marginRight: 7 }} />
-            <Text style={{ color: theme.icon, fontWeight: 'bold', fontSize: 15, letterSpacing: 0.2 }}>
+            <Ionicons name={dynamicCheck ? 'flash-outline' : 'list-outline'} size={20} color={'#1976FF'} style={{ marginRight: 10 }} />
+            <Text style={{ color: '#1976FF', fontWeight: 'bold', fontSize: 16, letterSpacing: 0.2, textAlign: 'center' }}>
               {dynamicCheck
                 ? 'Dynamic Check: Next Highest Level'
                 : `Levels: ${selectedLevels.join(', ')}`}
             </Text>
           </View>
         </Animated.View>
-        <Animated.View entering={FadeIn.delay(200).duration(500)}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.prettyButton,
-              {
-                backgroundColor: (!input.trim() || loading)
-                  ? theme.icon + '33'
-                  : (pressed ? theme.tint + 'cc' : theme.tint),
-                opacity: (!input.trim() || loading) ? 0.6 : 1,
-                borderWidth: 1.5,
-                borderColor: (!input.trim() || loading) ? theme.icon + '33' : theme.tint,
-              },
-            ]}
-            onPress={() => {
-              Keyboard.dismiss();
-              handleCheck();
-            }}
-            disabled={loading || !input.trim()}
-            android_ripple={{ color: theme.icon + '22' }}
-          >
-            <Text style={[styles.prettyButtonText, { color: (!input.trim() || loading) ? theme.icon : theme.background }]}>{loading ? 'Checking...' : 'Check CEFR Levels'}</Text>
-          </Pressable>
-        </Animated.View>
         {error && <Animated.Text entering={FadeIn.duration(400)} style={[styles.error, { color: '#e74c3c' }]}>{error}</Animated.Text>}
         {analysis && showAnalysis && (
           <Animated.View
             entering={FadeIn.duration(500)}
             exiting={FadeOut.duration(350)}
-            style={styles.analysisContainer}
+            style={[styles.analysisContainer, { marginTop: 7 }]}
             onExitComplete={() => {
               setInput('');
               setResult(null);
@@ -193,23 +236,36 @@ export default function CEFRChecker() {
           <Animated.View
             entering={FadeIn.duration(500)}
             exiting={FadeOut.duration(350)}
-            style={styles.resultContainer}
-            // No need for onExitComplete here, handled by analysis card
+            style={{ marginTop: 24, marginBottom: 80 }} // Add marginBottom to push last result above tab bar
           >
             {(
               (dynamicCheck && analysis?.level)
                 ? result.results.filter(r => r.level === getNextLevel(analysis.level)[0])
                 : result.results.filter(r => selectedLevels.includes(r.level))
-            ).map((r, idx) => (
+            ).map((r, idx, arr) => (
               <Animated.View
                 key={idx}
                 entering={FadeIn.delay(100 * idx).duration(400)}
                 exiting={FadeOut.duration(350)}
-                style={styles.levelContainer}
+                style={{
+                  marginBottom: 16, // Always 16, let parent handle last margin
+                  padding: 18,
+                  backgroundColor: '#F7FAFF',
+                  borderRadius: 14,
+                  shadowColor: '#1976FF',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 6,
+                  elevation: 2,
+                  borderWidth: 1.5,
+                  borderColor: '#D6E4FF',
+                }}
               >
-                <Text style={styles.level}>Level: {r.level}</Text>
-                <Text style={styles.sentence}>Sentence: {r.sentence}</Text>
-                <Text style={styles.explanation}>Explanation: {r.explanation}</Text>
+                <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#1976FF', marginBottom: 4 }}>Level: {r.level}</Text>
+                <Text style={{ fontSize: 15, color: '#222', marginBottom: 2 }}>Sentence:</Text>
+                <Text style={{ fontSize: 15, color: '#333', marginBottom: 6 }}>{r.sentence}</Text>
+                <Text style={{ fontSize: 14, color: '#1976FF', fontWeight: '500', marginBottom: 2 }}>Explanation:</Text>
+                <Text style={{ fontSize: 14, color: '#555' }}>{r.explanation}</Text>
               </Animated.View>
             ))}
           </Animated.View>
@@ -237,7 +293,7 @@ export default function CEFRChecker() {
           </Animated.View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -291,7 +347,6 @@ const styles = StyleSheet.create({
   },
   analysisContainer: {
     marginTop: 20,
-    marginBottom: 12,
     padding: 12,
     backgroundColor: '#e6f7ee',
     borderRadius: 8,
