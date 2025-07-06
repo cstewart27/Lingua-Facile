@@ -286,7 +286,7 @@ export default function TranslatorScreen() {
               zIndex: 20,
             }}
           >
-            <Text style={{ color: 'white', fontWeight: '700', fontSize: 18 }}>+  New translation</Text>
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 18 }}>Clear Translation</Text>
           </TouchableOpacity>
         )}
       </View>
