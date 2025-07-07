@@ -36,7 +36,7 @@ export const CEFRInput: React.FC<CEFRInputProps> = ({
         </TouchableOpacity>
       )}
       <TextInput
-        style={{ fontSize: 20, color: '#11181C', minHeight: 60, marginBottom: 8, fontWeight: '400', width: '100%' }}
+        style={{ fontSize: 20, color: '#11181C', minHeight: 60, marginBottom: 8, fontWeight: '400', width: '100%', paddingRight: 22 }}
         value={input}
         onChangeText={setInput}
         placeholder="Enter a sentence..."
