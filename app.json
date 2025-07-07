@@ -14,7 +14,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "icon": "./assets/images/ios-icon.png"
+      "icon": "./assets/images/ios_icon.png"
     },
     "android": {
       "adaptiveIcon": {
