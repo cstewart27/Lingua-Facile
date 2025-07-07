@@ -182,7 +182,7 @@ export default function TranslatorScreen() {
         {/* Main content */}
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={{ flexGrow: 1, paddingTop: 10, paddingBottom: 180, paddingHorizontal: 10, backgroundColor: '#F6F7FB' }}
+          contentContainerStyle={{ flexGrow: 1, paddingTop: 14, paddingBottom: 180, paddingHorizontal: 10, backgroundColor: '#F6F7FB' }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
