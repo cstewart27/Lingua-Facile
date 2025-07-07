@@ -178,7 +178,6 @@ export default function TranslatorScreen() {
   const scrollRef = React.useRef<ScrollView>(null);
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={{ flex: 1, backgroundColor: '#F6F7FB' }}>
         {/* Main content */}
         <ScrollView
@@ -210,6 +209,7 @@ export default function TranslatorScreen() {
             hasClipboardContent={hasClipboardContent}
             languages={languages}
             sourceLang={sourceLang}
+            handleTranslate={handleTranslate}
           />
 
           {/* Translation Card */}
@@ -290,6 +290,5 @@ export default function TranslatorScreen() {
           </TouchableOpacity>
         )}
       </View>
-    </TouchableWithoutFeedback>
   );
 }

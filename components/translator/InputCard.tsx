@@ -12,6 +12,7 @@ interface InputCardProps {
   hasClipboardContent: boolean;
   languages: { code: string; name: string }[];
   sourceLang: string | null;
+  handleTranslate?: () => void;
 }
 
 export const InputCard: React.FC<InputCardProps> = ({
@@ -23,6 +24,7 @@ export const InputCard: React.FC<InputCardProps> = ({
   hasClipboardContent,
   languages,
   sourceLang,
+  handleTranslate,
 }) => (
   <View style={{ backgroundColor: 'white', borderRadius: 20, marginHorizontal: 12, marginBottom: 16, padding: 16, minHeight: 180, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
@@ -50,6 +52,7 @@ export const InputCard: React.FC<InputCardProps> = ({
             setDraftInputText(text);
             if (!inputFocused) {
               setInputText(text);
+              if (handleTranslate) handleTranslate();
             }
           }
         }}
@@ -80,4 +83,3 @@ export const InputCard: React.FC<InputCardProps> = ({
     </View>
   </View>
 );
-
