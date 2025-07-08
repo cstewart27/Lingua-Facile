@@ -4,6 +4,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import * as Speech from 'expo-speech';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '../utils/supabase';
 
@@ -31,6 +33,19 @@ export default function RootLayout() {
     return () => {
       listener.subscription.unsubscribe();
     };
+  }, []);
+
+  // Fetch and store available voices on startup
+  useEffect(() => {
+    const fetchAndStoreVoices = async () => {
+      try {
+        const voices = await Speech.getAvailableVoicesAsync();
+        await AsyncStorage.setItem('availableVoices', JSON.stringify(voices));
+      } catch (e) {
+        // Optionally handle error
+      }
+    };
+    fetchAndStoreVoices();
   }, []);
 
   if (!loaded || !authChecked) {

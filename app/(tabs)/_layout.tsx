@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
-import React, { useState } from 'react';
-import { Platform, View, Text, TouchableOpacity, Alert, Modal } from 'react-native';
+import React from 'react';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,11 +9,11 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import SettingsScreen from '@/components/ui/Settings';
+import { useRouter } from 'expo-router';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const [settingsVisible, setSettingsVisible] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -39,8 +39,8 @@ export default function TabLayout() {
                   )}
                 </View>
                 <View style={{ width: 40, alignItems: 'flex-end' }}>
-                  <TouchableOpacity onPress={() => setSettingsVisible(true)}>
-                    <Ionicons name="settings-outline" size={22} color={Colors[colorScheme ?? 'light'].icon} />
+                  <TouchableOpacity onPress={() => router.push('/Settings')}>
+                    <Ionicons name="settings-outline" size={25} color={Colors[colorScheme ?? 'light'].icon} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -77,15 +77,6 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-      {/* Settings Modal - styled like CEFRChecker */}
-      <Modal
-        visible={settingsVisible}
-        animationType="slide"
-        presentationStyle="formSheet"
-        onRequestClose={() => setSettingsVisible(false)}
-      >
-        <SettingsScreen onClose={() => setSettingsVisible(false)} />
-      </Modal>
     </>
   );
 }

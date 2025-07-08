@@ -162,14 +162,6 @@ export default function CEFRChecker() {
             entering={FadeIn.duration(500)}
             exiting={FadeOut.duration(350)}
             style={[styles.analysisContainer, { marginTop: 7 }]}
-            onExitComplete={() => {
-              setInput('');
-              setResult(null);
-              setAnalysis(null);
-              setAnalyzedInput('');
-              setError(null);
-              // Do not set showAnalysis/showResults here
-            }}
           >
             <Text style={[styles.analysisTitle, { color: theme.text }]}>Overall CEFR Level: <Text style={styles.analysisLevel}>{analysis.level}</Text></Text>
             <Text style={[styles.analysisJustificationLabel, { color: theme.icon }]}>Justification:</Text>
@@ -186,10 +178,6 @@ export default function CEFRChecker() {
                   borderWidth: 1.5,
                   borderColor: '#cd6053',
                   shadowColor: '#cd6053',
-                  shadowOpacity: 0.10,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 2 },
-                  elevation: 2,
                 },
               ]}
               onPress={() => {

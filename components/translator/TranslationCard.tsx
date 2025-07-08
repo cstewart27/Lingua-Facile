@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { MotiView } from 'moti';
+import * as Speech from 'expo-speech';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface TranslationCardProps {
   isLoading: boolean;
@@ -33,7 +35,25 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ fontWeight: '600', color: '#11181C', fontSize: 16 }}>{languages.find(l => l.code === targetLang)?.name || 'English'}</Text>
-          <Ionicons name="play-circle-outline" size={18} color="#1976FF" style={{ marginLeft: 6 }} />
+          <TouchableOpacity
+            onPress={async () => {
+              if (translatedText) {
+                // Get the user's per-language voice map from AsyncStorage
+                const voiceMapJson = await AsyncStorage.getItem('pronunciationVoiceMap');
+                let voiceMap = {};
+                if (voiceMapJson) voiceMap = JSON.parse(voiceMapJson);
+                const langCode = (targetLang || 'en').split('-')[0];
+                const selectedVoiceId = voiceMap[langCode];
+                const voices = await Speech.getAvailableVoicesAsync();
+                let selectedVoice = voices.find(v => v.identifier === selectedVoiceId) || voices.find(v => v.language.startsWith(langCode)) || voices[0];
+                Speech.speak(translatedText, { language: targetLang || 'en', voice: selectedVoice?.identifier });
+              }
+            }}
+            style={{ marginLeft: 6, padding: 6, borderRadius: 20 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="play-circle-outline" size={28} color="#1976FF" />
+          </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleNewTranslation} style={{ backgroundColor: '#F6F7FB', borderRadius: 16, padding: 4 }}>
           <Ionicons name="close" size={18} color="#B0B0B0" />
